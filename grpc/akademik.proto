@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package akademik;
+
+// Opsi untuk package Go yang akan dihasilkan
+option go_package = "github.com/username/project/akademik_pb"; // Ganti dengan path package Go Anda
+
+// --- Definisi Pesan (Messages) ---
+
+message MataKuliah {
+  string id = 1;        // ID unik mata kuliah (misalnya UUID)
+  string kode_mk = 2;   // Kode mata kuliah, contoh: IF101
+  string nama_mk = 3;   // Nama mata kuliah, contoh: Dasar Pemrograman
+  int32 sks = 4;        // Jumlah SKS
+}
+
+message Mahasiswa {
+  string id = 1;        // ID unik mahasiswa (misalnya UUID)
+  string nim = 2;       // Nomor Induk Mahasiswa
+  string nama = 3;      // Nama lengkap mahasiswa
+  string jurusan = 4;   // Jurusan mahasiswa
+  repeated string mata_kuliah_ids = 5; // Daftar ID mata kuliah yang diambil (ini adalah "edge")
+  // Untuk menampilkan detail mata kuliah secara langsung, kita bisa tambahkan ini:
+  // Namun, ini akan membuat pesan Mahasiswa lebih besar.
+  // Alternatifnya, klien bisa memanggil RPC lain untuk mendapatkan detail MataKuliah.
+  // Untuk contoh ini, kita akan coba isi melalui resolver di server jika diminta.
+  repeated MataKuliah detail_mata_kuliah = 6;
+}
+
+// --- Pesan untuk Permintaan/Respons Metode RPC Mahasiswa ---
+
+message CreateMahasiswaRequest {
+  string nim = 1;
+  string nama = 2;
+  string jurusan = 3;
+}
+// Response akan menggunakan pesan Mahasiswa
+
+message GetMahasiswaRequest {
+  string id = 1;
+  bool sertakan_detail_mata_kuliah = 2; // Flag untuk meminta detail mata kuliah
+}
+// Response akan menggunakan pesan Mahasiswa
+
+message UpdateMahasiswaRequest {
+  string id = 1;
+  string nim = 2;
+  string nama = 3;
+  string jurusan = 4;
+  // Tidak mengizinkan update mata_kuliah_ids secara langsung di sini,
+  // gunakan RPC khusus untuk pendaftaran mata kuliah.
+}
+// Response akan menggunakan pesan Mahasiswa
+
+message DeleteMahasiswaRequest {
+  string id = 1;
+}
+
+message ListMahasiswaRequest {
+  // Bisa ditambahkan filter atau parameter paginasi di sini
+  bool sertakan_detail_mata_kuliah = 1;
+}
+
+message ListMahasiswaResponse {
+  repeated Mahasiswa daftar_mahasiswa = 1;
+}
+
+// --- Pesan untuk Permintaan/Respons Metode RPC MataKuliah ---
+
+message CreateMataKuliahRequest {
+  string kode_mk = 1;
+  string nama_mk = 2;
+  int32 sks = 3;
+}
+// Response akan menggunakan pesan MataKuliah
+
+message GetMataKuliahRequest {
+  string id = 1;
+}
+// Response akan menggunakan pesan MataKuliah
+
+message ListMataKuliahRequest {
+  // Bisa ditambahkan filter atau parameter paginasi
+}
+
+message ListMataKuliahResponse {
+  repeated MataKuliah daftar_mata_kuliah = 1;
+}
+
+// --- Pesan untuk Pendaftaran Mata Kuliah (Manajemen Edge) ---
+
+message DaftarkanMataKuliahRequest {
+  string mahasiswa_id = 1;
+  string mata_kuliah_id = 2;
+}
+// Response akan menggunakan pesan Mahasiswa (yang sudah diupdate)
+
+// Pesan kosong untuk RPC yang tidak mengembalikan data spesifik
+message EmptyResponse {}
+
+// --- Definisi Layanan (Service) ---
+
+service AkademikService {
+  // Metode RPC untuk Mahasiswa
+  rpc CreateMahasiswa(CreateMahasiswaRequest) returns (Mahasiswa);
+  rpc GetMahasiswa(GetMahasiswaRequest) returns (Mahasiswa);
+  rpc UpdateMahasiswa(UpdateMahasiswaRequest) returns (Mahasiswa);
+  rpc DeleteMahasiswa(DeleteMahasiswaRequest) returns (EmptyResponse);
+  rpc ListMahasiswa(ListMahasiswaRequest) returns (ListMahasiswaResponse);
+
+  // Metode RPC untuk MataKuliah
+  rpc CreateMataKuliah(CreateMataKuliahRequest) returns (MataKuliah);
+  rpc GetMataKuliah(GetMataKuliahRequest) returns (MataKuliah);
+  rpc ListMataKuliah(ListMataKuliahRequest) returns (ListMataKuliahResponse);
+  // (Bisa ditambahkan Update/Delete MataKuliah jika diperlukan)
+
+  // Metode RPC untuk mendaftarkan mahasiswa ke mata kuliah (Edge)
+  rpc DaftarkanMataKuliahUntukMahasiswa(DaftarkanMataKuliahRequest) returns (Mahasiswa);
+}
